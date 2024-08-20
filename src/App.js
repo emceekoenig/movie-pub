@@ -1,5 +1,5 @@
 import "./App.css";
-import api from "./api/axiosConfig";
+import { fetchMovies, fetchMovieData } from "./services/movieService";
 import { useState, useEffect } from "react";
 import Layout from "./components/Layout";
 import { Routes, Route } from "react-router-dom";
@@ -17,32 +17,33 @@ function App() {
   const [movies, setMovies] = useState([]);
   const [movie, setMovie] = useState();
   const [reviews, setReviews] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   // function that handles Http GET request to an endpoint that returns an array of movie data
   // once the movie data successfully returns, this code that changes the state of the `movies` array is executed
   const getMovies = async () => {
     try {
-      // the "/api/v1/movies" path is appended to our `baseUrl` in the `axiosConfig.js` file
-      const response = await api.get("/api/v1/movies");
-
-      console.log(response.data);
-
-      setMovies(response.data);
+      setLoading(true);
+      const data = await fetchMovies();
+      setMovies(data);
     } catch (err) {
-      console.log(err);
+      console.error("Failed to fetch movies:", err);
+      alert("An error occurred while fetching movies. Please try again later.");
+    } finally {
+      setLoading(false);
     }
   };
 
   const getMovieData = async (movieId) => {
     try {
-      const response = await api.get(`/api/v1/movies/${movieId}`);
-      const singleMovie = response.data;
-
-      setMovie(singleMovie);
-
-      setReviews(singleMovie.reviews);
+      const data = await fetchMovieData(movieId);
+      setMovie(data);
+      setReviews(data.reviews);
     } catch (error) {
-      console.log(error);
+      console.error("Failed to fetch movie data:", error);
+      alert(
+        "An error occurred while fetching movie data. Please try again later."
+      );
     }
   };
 
@@ -54,40 +55,44 @@ function App() {
   return (
     <div className="App">
       <Header />
-      <Routes>
-        <Route
-          path="/"
-          element={<Layout />}
-        >
+      {loading ? (
+        <p>Loading movies...</p>
+      ) : (
+        <Routes>
           <Route
             path="/"
-            element={<Home movies={movies} />}
-          ></Route>
-          <Route
-            path="/watchlist"
-            element={<WatchList movies={movies} />}
-          ></Route>
-          <Route
-            path="/Trailer/:ytTrailerId"
-            element={<Trailer />}
-          ></Route>
-          <Route
-            path="/Reviews/:movieId"
-            element={
-              <Reviews
-                getMovieData={getMovieData}
-                movie={movie}
-                reviews={reviews}
-                setReviews={setReviews}
-              />
-            }
-          ></Route>
-          <Route
-            path="*"
-            element={<NotFound />}
-          ></Route>
-        </Route>
-      </Routes>
+            element={<Layout />}
+          >
+            <Route
+              path="/"
+              element={<Home movies={movies} />}
+            ></Route>
+            <Route
+              path="/watchlist"
+              element={<WatchList movies={movies} />}
+            ></Route>
+            <Route
+              path="/Trailer/:ytTrailerId"
+              element={<Trailer />}
+            ></Route>
+            <Route
+              path="/Reviews/:movieId"
+              element={
+                <Reviews
+                  getMovieData={getMovieData}
+                  movie={movie}
+                  reviews={reviews}
+                  setReviews={setReviews}
+                />
+              }
+            ></Route>
+            <Route
+              path="*"
+              element={<NotFound />}
+            ></Route>
+          </Route>
+        </Routes>
+      )}
     </div>
   );
 }
